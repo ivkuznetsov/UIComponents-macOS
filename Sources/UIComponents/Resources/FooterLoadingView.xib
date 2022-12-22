@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView wantsLayer="YES" id="c22-O7-iKe" customClass="FooterLoadingView" customModule="UIComponents">
+            <rect key="frame" x="0.0" y="0.0" width="300" height="30"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <box boxType="custom" borderWidth="0.0" title="Box" translatesAutoresizingMaskIntoConstraints="NO" id="gAT-Cv-k7D">
+                    <rect key="frame" x="0.0" y="0.0" width="300" height="30"/>
+                    <view key="contentView" id="KH7-9r-io2">
+                        <rect key="frame" x="0.0" y="0.0" width="300" height="30"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                    </view>
+                    <color key="fillColor" red="0.97369331791176716" green="0.98835269406711623" blue="1" alpha="0.0" colorSpace="custom" customColorSpace="displayP3"/>
+                </box>
+                <progressIndicator wantsLayer="YES" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="obu-bc-8xk">
+                    <rect key="frame" x="142" y="7" width="16" height="16"/>
+                </progressIndicator>
+                <button hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="woo-gt-jMj">
+                    <rect key="frame" x="109" y="3" width="82" height="23"/>
+                    <constraints>
+                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="80" id="PnN-Fm-uR6"/>
+                    </constraints>
+                    <buttonCell key="cell" type="roundTextured" title="Retry" bezelStyle="texturedRounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="TRm-lz-AO9">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="retryAction:" target="c22-O7-iKe" id="l35-Sn-tBb"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="woo-gt-jMj" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="5" id="3S1-7O-hPp"/>
+                <constraint firstAttribute="trailing" secondItem="gAT-Cv-k7D" secondAttribute="trailing" id="Ag2-4Y-Ya1"/>
+                <constraint firstItem="woo-gt-jMj" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="FNR-rW-O11"/>
+                <constraint firstAttribute="bottom" secondItem="gAT-Cv-k7D" secondAttribute="bottom" id="Iv6-5D-WjU"/>
+                <constraint firstItem="obu-bc-8xk" firstAttribute="centerY" secondItem="c22-O7-iKe" secondAttribute="centerY" id="MND-Cp-bb9"/>
+                <constraint firstItem="gAT-Cv-k7D" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="Sn4-Bg-rEz"/>
+                <constraint firstItem="obu-bc-8xk" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="Zab-rk-rbL"/>
+                <constraint firstItem="gAT-Cv-k7D" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="ehv-VY-g1b"/>
+                <constraint firstAttribute="bottom" secondItem="woo-gt-jMj" secondAttribute="bottom" constant="5" id="lN4-Zw-h25"/>
+            </constraints>
+            <connections>
+                <outlet property="indicatorView" destination="obu-bc-8xk" id="oS2-Ff-02D"/>
+                <outlet property="retryButton" destination="woo-gt-jMj" id="4WD-V8-cP4"/>
+            </connections>
+            <point key="canvasLocation" x="49" y="37"/>
+        </customView>
+    </objects>
+</document>

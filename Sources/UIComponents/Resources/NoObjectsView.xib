@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <box wantsLayer="YES" boxType="custom" borderType="none" borderWidth="0.0" title="Box" titlePosition="noTitle" id="KTb-a4-53b" userLabel="Brand Background" customClass="NoObjectsView" customModule="UIComponents">
+            <rect key="frame" x="0.0" y="0.0" width="556" height="751"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <view key="contentView" wantsLayer="YES" id="h5b-Qv-KcU">
+                <rect key="frame" x="0.0" y="0.0" width="556" height="751"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="gMb-c7-WmY">
+                        <rect key="frame" x="278" y="456" width="0.0" height="0.0"/>
+                        <imageCell key="cell" refusesFirstResponder="YES" alignment="left" id="laK-Iu-Lqq"/>
+                    </imageView>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="eHf-bW-lFM">
+                        <rect key="frame" x="242" y="411" width="73" height="19"/>
+                        <textFieldCell key="cell" lineBreakMode="clipping" title="Main Text" id="jT1-Tc-76r">
+                            <font key="font" metaFont="systemSemibold" size="15"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="EEB-zk-hao">
+                        <rect key="frame" x="240" y="387" width="76" height="16"/>
+                        <textFieldCell key="cell" lineBreakMode="clipping" title="Details text." id="6Dy-MZ-qMO">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button hidden="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="moV-0F-nQG">
+                        <rect key="frame" x="208" y="324" width="140" height="30"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="30" id="1N4-0O-SUs"/>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="140" id="f8N-Th-MlI"/>
+                        </constraints>
+                        <buttonCell key="cell" type="square" title="Some Action" bezelStyle="shadowlessSquare" imagePosition="left" alignment="center" imageScaling="proportionallyDown" inset="2" id="Yhf-jb-Jne">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="action:" target="KTb-a4-53b" id="R9w-kJ-3B7"/>
+                        </connections>
+                    </button>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="EEB-zk-hao" firstAttribute="top" secondItem="eHf-bW-lFM" secondAttribute="bottom" constant="8" id="5iX-NB-vfA"/>
+                    <constraint firstItem="gMb-c7-WmY" firstAttribute="centerX" secondItem="h5b-Qv-KcU" secondAttribute="centerX" id="H2v-Nh-Zfa"/>
+                    <constraint firstItem="EEB-zk-hao" firstAttribute="centerX" secondItem="eHf-bW-lFM" secondAttribute="centerX" id="Tc6-lJ-JpI"/>
+                    <constraint firstItem="moV-0F-nQG" firstAttribute="centerX" secondItem="h5b-Qv-KcU" secondAttribute="centerX" id="V6g-AG-3Ih"/>
+                    <constraint firstItem="eHf-bW-lFM" firstAttribute="top" secondItem="gMb-c7-WmY" secondAttribute="bottom" constant="26" id="eQx-Wc-bYE"/>
+                    <constraint firstItem="eHf-bW-lFM" firstAttribute="centerX" secondItem="gMb-c7-WmY" secondAttribute="centerX" id="jkr-4c-gqY"/>
+                    <constraint firstItem="gMb-c7-WmY" firstAttribute="centerY" secondItem="h5b-Qv-KcU" secondAttribute="centerY" constant="-80" id="otm-Tb-LQk"/>
+                    <constraint firstItem="moV-0F-nQG" firstAttribute="top" secondItem="EEB-zk-hao" secondAttribute="bottom" constant="33" id="yWG-cM-KOG"/>
+                </constraints>
+            </view>
+            <color key="fillColor" red="0.97369331791176716" green="0.98835269406711623" blue="1" alpha="0.0" colorSpace="custom" customColorSpace="displayP3"/>
+            <connections>
+                <outlet property="actionButton" destination="moV-0F-nQG" id="EfP-qS-dnD"/>
+                <outlet property="details" destination="EEB-zk-hao" id="uj0-lg-L3A"/>
+                <outlet property="header" destination="eHf-bW-lFM" id="AdB-Qc-b5K"/>
+                <outlet property="image" destination="gMb-c7-WmY" id="ECH-p0-dea"/>
+            </connections>
+            <point key="canvasLocation" x="139" y="121"/>
+        </box>
+    </objects>
+</document>

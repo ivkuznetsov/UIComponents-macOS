@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView wantsLayer="YES" id="c22-O7-iKe" customClass="AlertBarView" customModule="UIComponents">
+            <rect key="frame" x="0.0" y="0.0" width="480" height="56"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <box wantsLayer="YES" boxType="custom" borderWidth="0.0" cornerRadius="6" title="Box" translatesAutoresizingMaskIntoConstraints="NO" id="bFD-ol-4XX">
+                    <rect key="frame" x="20" y="10" width="440" height="36"/>
+                    <view key="contentView" wantsLayer="YES" id="p44-fu-TUv">
+                        <rect key="frame" x="0.0" y="0.0" width="440" height="36"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <textField horizontalHuggingPriority="100" verticalHuggingPriority="100" translatesAutoresizingMaskIntoConstraints="NO" id="ZzX-2R-3IG">
+                                <rect key="frame" x="8" y="10" width="424" height="16"/>
+                                <textFieldCell key="cell" title="Label" id="aQH-w0-nJd">
+                                    <font key="font" usesAppearanceFont="YES"/>
+                                    <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                        </subviews>
+                        <constraints>
+                            <constraint firstAttribute="bottom" secondItem="ZzX-2R-3IG" secondAttribute="bottom" constant="10" id="9hs-g7-jWR"/>
+                            <constraint firstAttribute="trailing" secondItem="ZzX-2R-3IG" secondAttribute="trailing" constant="10" id="PBn-cQ-SPR"/>
+                            <constraint firstItem="ZzX-2R-3IG" firstAttribute="top" secondItem="p44-fu-TUv" secondAttribute="top" constant="10" id="suv-lJ-C6r"/>
+                            <constraint firstItem="ZzX-2R-3IG" firstAttribute="leading" secondItem="p44-fu-TUv" secondAttribute="leading" constant="10" id="wU3-Ob-8LN"/>
+                        </constraints>
+                    </view>
+                    <shadow key="shadow" blurRadius="3">
+                        <size key="offset" width="0.0" height="-3"/>
+                        <color key="color" white="0.0" alpha="0.096872342687074828" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    </shadow>
+                    <color key="borderColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                    <color key="fillColor" name="PrimaryActionButtonBackgroundColor"/>
+                </box>
+            </subviews>
+            <constraints>
+                <constraint firstItem="bFD-ol-4XX" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="3rd-mD-Lf7"/>
+                <constraint firstAttribute="trailing" secondItem="bFD-ol-4XX" secondAttribute="trailing" priority="900" constant="20" id="Nk8-6O-C2H"/>
+                <constraint firstItem="bFD-ol-4XX" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="10" id="drV-96-xn5"/>
+                <constraint firstAttribute="bottom" secondItem="bFD-ol-4XX" secondAttribute="bottom" priority="900" constant="10" id="qgp-D0-kDx"/>
+            </constraints>
+            <connections>
+                <outlet property="container" destination="bFD-ol-4XX" id="uPZ-hu-D14"/>
+                <outlet property="textLabel" destination="ZzX-2R-3IG" id="Rvz-59-z25"/>
+            </connections>
+            <point key="canvasLocation" x="82" y="147"/>
+        </customView>
+    </objects>
+    <resources>
+        <namedColor name="PrimaryActionButtonBackgroundColor">
+            <color red="0.0" green="0.47499999403953552" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
+</document>
