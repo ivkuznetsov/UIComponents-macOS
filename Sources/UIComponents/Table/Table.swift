@@ -21,7 +21,7 @@ public protocol TableDelegate: NSTableViewDelegate {
     
     func deselectedAll(table: Table)
     
-    func createCell(object: AnyHashable, table: Table) -> Table.Cell?
+    func createCell(object: AnyHashable, table: Table) -> NSTableView.Cell?
     
     func cellHeight(object: AnyHashable, table: Table) -> CGFloat
     
@@ -38,13 +38,13 @@ public extension TableDelegate {
     
     func shouldShowNoData(objects: [AnyHashable], table: Table) -> Bool { objects.isEmpty }
     
-    func action(object: AnyHashable, table: Table) -> Table.Result { .deselectCell }
+    func action(object: AnyHashable, table: Table) -> Table.Result { .deselect }
     
     func doubleClickAction(object: AnyHashable, table: Table) { }
     
     func deselectedAll(table: Table) { }
     
-    func createCell(object: AnyHashable, table: Table) -> Table.Cell? { nil }
+    func createCell(object: AnyHashable, table: Table) -> NSTableView.Cell? { nil }
     
     func cellHeight(object: AnyHashable, table: Table) -> CGFloat { -1 }
     
@@ -53,29 +53,17 @@ public extension TableDelegate {
     func scrollViewDidScroll(table: Table) { }
 }
 
-public protocol CellSizeCachable {
-    var cacheKey: String { get }
-}
-
 public class Table: StaticSetupObject {
     
-    public enum Result: Int {
-        case deselectCell
-        case selectCell
-    }
+    public typealias Result = SelectionResult
     
-    public struct Cell {
-        fileprivate let type: NSTableRowView.Type
-        fileprivate let fill: (NSTableRowView)->()
-        
-        public init<T: BaseTableViewCell>(_ type: T.Type, _ fill: ((T)->())? = nil) {
-            self.type = type
-            self.fill = { fill?($0 as! T) }
-        }
-    }
+    public let scrollView: NSScrollView
+    public let table: NSTableView
+    weak var delegate: TableDelegate?
+    public private(set) var objects: [AnyHashable] = []
     
     private var deferredReload = false
-    public var visible: Bool = true { // defer reload when view is not visible
+    public var visible: Bool = true {
         didSet {
             if visible && (visible != oldValue) && deferredReload {
                 reloadVisibleCells()
@@ -83,14 +71,7 @@ public class Table: StaticSetupObject {
         }
     }
     
-    public let scrollView: NSScrollView
-    public let table: NSTableView
-    public private(set) var objects: [AnyHashable] = []
-    
-    public lazy var noObjectsView: NoObjectsView = NoObjectsView.loadFromNib()
-    
-    weak var delegate: TableDelegate?
-    fileprivate var cachedHeights: [NSValue:CGFloat] = [:]
+    private var cachedHeights: [NSValue:CGFloat] = [:]
     
     public convenience init(view: NSView, delegate: TableDelegate) {
         self.init(table: type(of: self).createTable(view: view), delegate: delegate)
@@ -120,6 +101,8 @@ public class Table: StaticSetupObject {
         setup()
     }
     
+    open lazy var noObjectsView: NoObjectsView = NoObjectsView.loadFromNib()
+    
     private var scrollObserver: Any?
     
     func setup() {
@@ -144,7 +127,7 @@ public class Table: StaticSetupObject {
         
         // remove missed estimated heights
         var set = Set(cachedHeights.keys)
-        objects.forEach { set.remove(cachedHeightKeyFor(object: $0)) }
+        objects.forEach { set.remove($0.cachedHeightKey) }
         set.forEach { cachedHeights[$0] = nil }
         
         let preserver = FirstResponderPreserver(window: table.window)
@@ -168,21 +151,31 @@ public class Table: StaticSetupObject {
     }
     
     public func reloadVisibleCells() {
-        if !visible {
-            deferredReload = true
-            return
-        }
-        
-        deferredReload = false
-        let rect = table.visibleRect
-        let rows = table.rows(in: rect)
-        
-        for i in rows.location..<(rows.location + rows.length) {
-            if let view = table.rowView(atRow: i, makeIfNecessary: false) as? NSTableRowView & ObjectHolder,
-               let object = view.object {
-                delegate?.createCell(object: object, table: self)?.fill(view)
+        if visible {
+            deferredReload = false
+            
+            let rows = table.rows(in: table.visibleRect)
+            
+            for i in rows.location..<(rows.location + rows.length) {
+                if let view = table.rowView(atRow: i, makeIfNecessary: false) {
+                    let object = objects[i]
+                    
+                    if object as? NSView == nil {
+                        delegate?.createCell(object: object, table: self)?.fill(view)
+                    }
+                }
             }
+        } else {
+            deferredReload = true
         }
+    }
+    
+    open override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) ? true : (delegate?.responds(to: aSelector) ?? false)
+    }
+    
+    open override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        super.responds(to: aSelector) ? self : delegate
     }
     
     public func setNeedUpdateHeights() {
@@ -195,21 +188,6 @@ public class Table: StaticSetupObject {
         
         table.beginUpdates()
         table.endUpdates()
-    }
-    
-    fileprivate func cachedHeightKeyFor(object: AnyHashable) -> NSValue {
-        if let object = object as? CellSizeCachable {
-            return NSNumber(integerLiteral: object.cacheKey.hash)
-        }
-        return NSValue(nonretainedObject: object)
-    }
-    
-    open override func responds(to aSelector: Selector!) -> Bool {
-        super.responds(to: aSelector) ? true : (delegate?.responds(to: aSelector) ?? false)
-    }
-    
-    open override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        super.responds(to: aSelector) ? self : delegate
     }
     
     public var defaultWidth: CGFloat {
@@ -270,7 +248,6 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
             let cell = (tableView.makeView(withIdentifier: id, owner: nil) ?? createCell.type.loadFromNib()) as! NSTableRowView
             cell.identifier = id
             createCell.fill(cell)
-            (cell as? ObjectHolder)?.object = object
             return cell
         }
         return nil
@@ -280,10 +257,10 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
         var height: CGFloat?
         let object = objects[row]
         
-        height = cachedHeights[cachedHeightKeyFor(object: object)]
+        height = cachedHeights[object.cachedHeightKey]
         if height == nil {
             height = delegate?.cellHeight(object: object, table: self)
-            cachedHeights[cachedHeightKeyFor(object: object)] = height
+            cachedHeights[object.cachedHeightKey] = height
         }
         return height ?? -1
     }
@@ -301,7 +278,7 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
             
             let result = delegate?.action(object: object, table: self)
             
-            if result == nil || result! == .deselectCell {
+            if result == nil || result! == .deselect {
                 table.deselectRow($0)
             }
         }

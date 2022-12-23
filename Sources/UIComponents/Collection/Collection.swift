@@ -13,7 +13,7 @@ public protocol CollectionDelegate: NSCollectionViewDelegate {
     
     func action(object: AnyHashable, collection: Collection) -> Collection.Result
     
-    func createCell(object: AnyHashable, collection: Collection) -> Collection.Cell
+    func createCell(object: AnyHashable, collection: Collection) -> NSCollectionView.Cell
     
     func cellSizeFor(object: AnyHashable, collection: Collection) -> CGSize
     
@@ -26,9 +26,9 @@ public extension CollectionDelegate {
     
     func viewSizeFor(view: NSView, defaultSize: CGSize, collection: Collection) -> CGSize { defaultSize }
     
-    func action(object: AnyHashable, collection: Collection) -> Collection.Result { .deselectCell }
+    func action(object: AnyHashable, collection: Collection) -> Collection.Result { .deselect }
     
-    func createCell(object: AnyHashable, collection: Collection) -> Collection.Cell? { nil }
+    func createCell(object: AnyHashable, collection: Collection) -> NSCollectionView.Cell? { nil }
     
     func cellSizeFor(object: AnyHashable, collection: Collection) -> CGSize { .zero }
     
@@ -37,21 +37,7 @@ public extension CollectionDelegate {
 
 open class Collection: StaticSetupObject {
     
-    public enum Result: Int {
-        case deselectCell
-        case selectCell
-    }
-    
-    public struct Cell {
-        
-        fileprivate let type: NSCollectionViewItem.Type
-        fileprivate let fill: (NSCollectionViewItem)->()
-        
-        public init<T: NSCollectionViewItem>(_ type: T.Type, _ fill: ((T)->())? = nil) {
-            self.type = type
-            self.fill = { fill?($0 as! T) }
-        }
-    }
+    public typealias Result = SelectionResult
     
     public let scrollView: NSScrollView
     public let collection: CollectionView
@@ -62,7 +48,6 @@ open class Collection: StaticSetupObject {
     
     public var layout: NSCollectionViewFlowLayout? { collection.collectionViewLayout as? NSCollectionViewFlowLayout }
     
-    // defer reload when view is not visible
     public var visible = true {
         didSet {
             if visible && visible != oldValue && !updatingData && deferredReload {
@@ -135,18 +120,18 @@ open class Collection: StaticSetupObject {
     private var updateCompletion: (()->())?
     
     public func reloadVisibleCells() {
-        guard let delegate = delegate else { return }
-        
-        if !visible {
-            deferredReload = true
-            return
-        }
-        
-        deferredReload = false
-        collection.visibleItems().forEach { item in
-            if let indexPath = collection.indexPath(for: item) {
-                delegate.createCell(object: objects[indexPath.item], collection: self)?.fill(item)
+        if visible {
+            collection.visibleItems().forEach { item in
+                if let indexPath = collection.indexPath(for: item) {
+                    let object = objects[indexPath.item]
+                    
+                    if object as? NSView == nil {
+                        delegate?.createCell(object: object, collection: self)?.fill(item)
+                    }
+                }
             }
+        } else {
+            deferredReload = true
         }
     }
     
@@ -199,13 +184,7 @@ open class Collection: StaticSetupObject {
     }
     
     open override func responds(to aSelector: Selector!) -> Bool {
-        if !super.responds(to: aSelector) {
-            if let delegate = delegate {
-                return delegate.responds(to: aSelector)
-            }
-            return false
-        }
-        return true
+        super.responds(to: aSelector) ? true : (delegate?.responds(to: aSelector) ?? false)
     }
     
     open override func forwardingTarget(for aSelector: Selector!) -> Any? {
@@ -264,7 +243,7 @@ extension Collection: NSCollectionViewDelegate {
             
             let result = delegate?.action(object: object, collection: self)
             
-            if result == nil || result! == .deselectCell {
+            if result == nil || result! == .deselect {
                 collectionView.deselectAll(nil)
             }
         }

@@ -4,14 +4,7 @@
 
 import AppKit
 
-public protocol ObjectHolder: AnyObject {
-    
-    var object: AnyHashable? { get set }
-}
-
-open class BaseTableViewCell: NSTableRowView, ObjectHolder {
-    
-    public var object: AnyHashable?
+open class BaseTableViewCell: NSTableRowView {
     
     open override func drawSeparator(in dirtyRect: NSRect) {
         if !isSelected && !isNextRowSelected {
