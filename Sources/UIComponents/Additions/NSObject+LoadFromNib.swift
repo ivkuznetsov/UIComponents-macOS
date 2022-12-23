@@ -1,17 +1,17 @@
 //
-//  UIView+LoadFromNib.swift
+//  NSObject+LoadFromNib.swift
 //
 
 import CommonUtils
 import AppKit
 
-public extension NSView {
+public extension NSObject {
     
     static func loadFromNib(_ nib: String? = nil, owner: Any? = nil) -> Self {
         loadFrom(nib: nib ?? String(describing: self), owner: owner, type: self)
     }
     
-    static func loadFrom<T: NSView>(nib: String, owner: Any?, type: T.Type) -> T  {
+    static func loadFrom<T: NSObject>(nib: String, owner: Any?, type: T.Type) -> T  {
         var bundle = Bundle.main
         if bundle.path(forResource: nib, ofType: "nib") == nil {
             bundle = Bundle(for: type)

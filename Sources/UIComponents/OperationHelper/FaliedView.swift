@@ -15,7 +15,6 @@ open class FailedView: NSBox {
     }
     
     open func present(in view: NSView, text: String, retry: (()->())?) {
-        frame = view.bounds
         textLabel?.stringValue = text
         self.retry = retry
         view.attach(self)

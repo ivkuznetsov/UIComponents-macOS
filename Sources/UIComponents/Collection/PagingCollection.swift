@@ -7,7 +7,7 @@ import AppKit
 open class PagingCollection: Collection {
     
     private(set) var loader: PagingLoader!
-    private weak var pagingDelegate: PagingLoaderDelegate?
+    private var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
     override func setup() {
         super.setup()
@@ -18,18 +18,11 @@ open class PagingCollection: Collection {
     }
     
     public init(collection: CollectionView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
-        self.pagingDelegate = pagingDelegate
         super.init(collection: collection, delegate: pagingDelegate)
     }
     
-    public init(view: NSView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
-        self.pagingDelegate = pagingDelegate
-        super.init(view: view, delegate: pagingDelegate)
-    }
-    
-    public init(customAdd: (NSScrollView)->(), pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
-        self.pagingDelegate = pagingDelegate
-        super.init(customAdd: customAdd, delegate: pagingDelegate)
+    public convenience init(view: NSView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
+        self.init(collection: type(of: self).createCollection(view: view), pagingDelegate: pagingDelegate)
     }
     
     func insertFooter(_ objects: [AnyHashable]) -> [AnyHashable] {
@@ -40,7 +33,7 @@ open class PagingCollection: Collection {
         return result
     }
     
-    public override func set(_ objects: [AnyHashable], animated: Bool, diffable: Bool = false, completion: (()->())? = nil) {
-        super.set(insertFooter(objects), animated: animated, diffable: diffable, completion: completion)
+    public override func set(_ objects: [AnyHashable], animated: Bool, completion: (()->())? = nil) {
+        super.set(insertFooter(objects), animated: animated, completion: completion)
     }
 }

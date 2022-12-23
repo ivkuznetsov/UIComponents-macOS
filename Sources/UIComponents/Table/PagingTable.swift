@@ -4,10 +4,10 @@
 
 import AppKit
 
-open class PagingTable: Table {
+public class PagingTable: Table {
     
     private(set) var loader: PagingLoader!
-    private weak var pagingDelegate: PagingLoaderDelegate?
+    private var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
     override func setup() {
         super.setup()
@@ -18,18 +18,11 @@ open class PagingTable: Table {
     }
     
     public init(table: NSTableView, pagingDelegate: PagingLoaderDelegate & TableDelegate) {
-        self.pagingDelegate = pagingDelegate
         super.init(table: table, delegate: pagingDelegate)
     }
     
-    public init(view: NSView, pagingDelegate: PagingLoaderDelegate & TableDelegate) {
-        self.pagingDelegate = pagingDelegate
-        super.init(view: view, delegate: pagingDelegate)
-    }
-    
-    public init(customAdd: (NSScrollView)->(), pagingDelegate: PagingLoaderDelegate & TableDelegate) {
-        self.pagingDelegate = pagingDelegate
-        super.init(customAdd: customAdd, delegate: pagingDelegate)
+    public convenience init(view: NSView, pagingDelegate: PagingLoaderDelegate & TableDelegate) {
+        self.init(table: type(of: self).createTable(view: view), pagingDelegate: pagingDelegate)
     }
     
     open override func set(_ objects: [AnyHashable], animated: Bool) {

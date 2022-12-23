@@ -62,17 +62,11 @@ open class Collection: StaticSetupObject {
     
     public var layout: NSCollectionViewFlowLayout? { collection.collectionViewLayout as? NSCollectionViewFlowLayout }
     
-    private var deferredUpdate = false
-    
     // defer reload when view is not visible
     public var visible = true {
         didSet {
-            if visible && visible != oldValue && deferredUpdate {
-                if !updatingDatasource {
-                    let objects = lazyObjects ?? []
-                    lazyObjects = nil
-                    set(objects, animated: false, completion: deferredCompletion)
-                }
+            if visible && visible != oldValue && !updatingData && deferredReload {
+                reloadVisibleCells()
             }
         }
     }
@@ -83,8 +77,8 @@ open class Collection: StaticSetupObject {
     // empty state
     public lazy var noObjectsView = NoObjectsView.loadFromNib()
     
-    private var updatingDatasource: Bool = false
-    private var lazyObjects: [AnyHashable]?
+    private var updatingData = false
+    private var deferredReload = false
     
     public init(collection: CollectionView, delegate: CollectionDelegate) {
         self.collection = collection
@@ -94,29 +88,17 @@ open class Collection: StaticSetupObject {
         setup()
     }
     
-    public init(view: NSView, delegate: CollectionDelegate) {
-        scrollView = NSScrollView()
+    public convenience init(view: NSView, delegate: CollectionDelegate) {
+        self.init(collection: type(of: self).createCollection(view: view), delegate: delegate)
+    }
+    
+    static func createCollection(view: NSView) -> CollectionView {
+        let scrollView = NSScrollView()
+        let collection = CollectionView(frame: .zero)
         scrollView.wantsLayer = true
         scrollView.layer?.masksToBounds = true
         scrollView.canDrawConcurrently = true
-        collection = CollectionView(frame: .zero)
-        self.delegate = delegate
-        super.init()
-        setupCollectionView()
-        view.attach(scrollView)
-        setup()
-    }
-    
-    public init(customAdd: (NSScrollView)->(), delegate: CollectionDelegate) {
-        scrollView = NSScrollView()
-        collection = CollectionView(frame: .zero)
-        self.delegate = delegate
-        super.init()
-        customAdd(scrollView)
-        setup()
-    }
-    
-    private func setupCollectionView() {
+        
         let layout = VerticalLeftAlignedLayout()
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 0
@@ -125,6 +107,8 @@ open class Collection: StaticSetupObject {
         scrollView.documentView = collection
         scrollView.drawsBackground = true
         collection.backgroundColors = [.clear]
+        view.attach(scrollView)
+        return collection
     }
     
     func setup() {
@@ -148,57 +132,70 @@ open class Collection: StaticSetupObject {
         }
     }
     
-    private var deferredCompletion: (()->())?
+    private var updateCompletion: (()->())?
     
-    public func set(_ objects: [AnyHashable], animated: Bool, diffable: Bool = false, completion: (()->())? = nil) {
-        let resultCompletion = { [weak self] in
-            let deferred = self?.deferredCompletion
-            self?.deferredCompletion = nil
-            deferred?()
+    public func reloadVisibleCells() {
+        guard let delegate = delegate else { return }
+        
+        if !visible {
+            deferredReload = true
+            return
         }
-        deferredCompletion = completion
-    
-        if updatingDatasource || !visible {
-            lazyObjects = objects
-            deferredUpdate = true
-        } else {
-            updatingDatasource = true
-            
-            internalSet(objects, animated: animated, diffable: diffable) { [weak self] in
-                guard let wSelf = self else { return }
-                
-                if let objects = wSelf.lazyObjects {
-                    wSelf.internalSet(objects, animated: false, diffable: diffable, completion: resultCompletion)
-                    wSelf.lazyObjects = nil
-                } else {
-                    resultCompletion()
-                }
-                wSelf.updatingDatasource = false
+        
+        deferredReload = false
+        collection.visibleItems().forEach { item in
+            if let indexPath = collection.indexPath(for: item) {
+                delegate.createCell(object: objects[indexPath.item], collection: self)?.fill(item)
             }
         }
     }
     
-    private func internalSet(_ objects: [AnyHashable], animated: Bool, diffable: Bool, completion: (()->())?) {
-        guard let delegate = delegate else { return }
-        
-        let toReload = collection.reload(animated: !deferredUpdate && animated, diffable: !deferredUpdate && diffable, expandBottom: expandsBottom, oldData: self.objects, newData: objects, completion: completion) { [weak self] in
-            self?.objects = objects
+    private var lazyObjects: [AnyHashable]?
+    public func set(_ objects: [AnyHashable], animated: Bool, completion: (()->())? = nil) {
+        let resultCompletion = { [weak self] in
+            guard let wSelf = self else { return }
+            
+            let completion = wSelf.updateCompletion
+            wSelf.updateCompletion = nil
+            wSelf.updatingData = false
+            
+            if wSelf.delegate?.shouldShowNoData(objects, collection: wSelf) == true {
+                wSelf.collection.attach(wSelf.noObjectsView)
+            } else {
+                wSelf.noObjectsView.removeFromSuperview()
+            }
+            completion?()
         }
-        deferredUpdate = false
-        
-        if animated {
-            toReload.forEach {
-                if let cell = collection.item(at: $0), cell as? ContainerCollectionItem == nil {
-                    delegate.createCell(object: objects[$0.item], collection: self)?.fill(cell)
+        updateCompletion = completion
+    
+        if updatingData {
+            lazyObjects = objects
+        } else {
+            updatingData = true
+            
+            internalSet(objects, animated: animated) { [weak self] in
+                guard let wSelf = self else { return }
+                
+                if let objects = wSelf.lazyObjects {
+                    wSelf.lazyObjects = nil
+                    wSelf.internalSet(objects, animated: false, completion: resultCompletion)
+                } else {
+                    resultCompletion()
                 }
             }
         }
-        
-        if delegate.shouldShowNoData(objects, collection: self) {
-            collection.attach(noObjectsView)
-        } else {
-            noObjectsView.removeFromSuperview()
-        }
+    }
+    
+    private func internalSet(_ objects: [AnyHashable], animated: Bool, completion: @escaping ()->()) {
+        collection.reload(animated: animated,
+                          expandBottom: expandsBottom,
+                          oldData: self.objects,
+                          newData: objects,
+                          updateObjects: {
+                            reloadVisibleCells()
+                            self.objects = objects
+                          },
+                          completion: completion)
     }
     
     open override func responds(to aSelector: Selector!) -> Bool {

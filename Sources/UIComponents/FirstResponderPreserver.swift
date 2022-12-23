@@ -5,6 +5,7 @@
 import AppKit
 
 public class FirstResponderPreserver {
+    
     private weak var textField: NSTextField?
     private var selection: NSRange?
     
@@ -19,7 +20,7 @@ public class FirstResponderPreserver {
         }
     }
     
-    func commit() {
+    public func commit() {
         if let textField = textField, let selection = selection {
             if let window = textField.window {
                 window.makeFirstResponder(textField)

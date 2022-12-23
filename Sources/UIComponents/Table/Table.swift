@@ -54,11 +54,10 @@ public extension TableDelegate {
 }
 
 public protocol CellSizeCachable {
-    
     var cacheKey: String { get }
 }
 
-open class Table: StaticSetupObject {
+public class Table: StaticSetupObject {
     
     public enum Result: Int {
         case deselectCell
@@ -66,7 +65,6 @@ open class Table: StaticSetupObject {
     }
     
     public struct Cell {
-        
         fileprivate let type: NSTableRowView.Type
         fileprivate let fill: (NSTableRowView)->()
         
@@ -76,14 +74,11 @@ open class Table: StaticSetupObject {
         }
     }
     
-    //options
-    public var cacheCellHeights = false
-    
-    private var deferredUpdate: Bool = false
-    open var visible: Bool = true { // defer reload when view is not visible
+    private var deferredReload = false
+    public var visible: Bool = true { // defer reload when view is not visible
         didSet {
-            if visible && (visible != oldValue) && deferredUpdate {
-                set(objects, animated: false)
+            if visible && (visible != oldValue) && deferredReload {
+                reloadVisibleCells()
             }
         }
     }
@@ -92,10 +87,30 @@ open class Table: StaticSetupObject {
     public let table: NSTableView
     public private(set) var objects: [AnyHashable] = []
     
-    open lazy var noObjectsView: NoObjectsView = NoObjectsView.loadFromNib()
+    public lazy var noObjectsView: NoObjectsView = NoObjectsView.loadFromNib()
     
     weak var delegate: TableDelegate?
     fileprivate var cachedHeights: [NSValue:CGFloat] = [:]
+    
+    public convenience init(view: NSView, delegate: TableDelegate) {
+        self.init(table: type(of: self).createTable(view: view), delegate: delegate)
+    }
+    
+    static func createTable(view: NSView) -> NSTableView {
+        let scrollView = NSScrollView()
+        let table = NoEmptyCellsTableView(frame: .zero)
+        
+        scrollView.documentView = table
+        scrollView.drawsBackground = true
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        table.backgroundColor = .clear
+        table.intercellSpacing = .zero
+        table.gridStyleMask = .solidHorizontalGridLineMask
+        table.headerView = nil
+        view.attach(scrollView)
+        return table
+    }
     
     public init(table: NSTableView, delegate: TableDelegate) {
         self.table = table
@@ -105,50 +120,19 @@ open class Table: StaticSetupObject {
         setup()
     }
     
-    public init(view: NSView, delegate: TableDelegate) {
-        scrollView = NSScrollView()
-        table = CustomTableView(frame: .zero)
-        self.delegate = delegate
-        super.init()
-        setupTableView()
-        view.attach(scrollView)
-        setup()
-    }
-    
-    public init(customAdd: (NSScrollView)->(), delegate: TableDelegate) {
-        scrollView = NSScrollView()
-        table = CustomTableView(frame: .zero)
-        self.delegate = delegate
-        super.init()
-        setupTableView()
-        customAdd(scrollView)
-        setup()
-    }
-    
-    private func setupTableView() {
-        scrollView.documentView = table
-        scrollView.drawsBackground = true
-        scrollView.hasVerticalScroller = true
-        scrollView.autohidesScrollers = true
-        table.backgroundColor = .clear
-        table.intercellSpacing = .zero
-        table.gridStyleMask = .solidHorizontalGridLineMask
-        table.headerView = nil
-    }
-    
     private var scrollObserver: Any?
     
     func setup() {
-        table.delegate = self
-        table.dataSource = self
         table.menu = NSMenu()
         table.menu?.delegate = self
-        table.target = self
         table.wantsLayer = true
+        table.delegate = self
+        table.dataSource = self
+        table.target = self
         table.doubleAction = #selector(doubleClickAction(_:))
         table.usesAutomaticRowHeights = true
         
-        scrollObserver = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: table.enclosingScrollView?.contentView, queue: nil) { [weak self] _ in
+        scrollObserver = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { [weak self] _ in
             if let wSelf = self {
                 wSelf.delegate?.scrollViewDidScroll(table: wSelf)
             }
@@ -156,14 +140,6 @@ open class Table: StaticSetupObject {
     }
     
     open func set(_ objects: [AnyHashable], animated: Bool) {
-        let oldObjects = self.objects
-        
-        if !visible {
-            self.objects = objects
-            deferredUpdate = true
-            return
-        }
-        
         guard let delegate = delegate else { return }
         
         // remove missed estimated heights
@@ -173,20 +149,14 @@ open class Table: StaticSetupObject {
         
         let preserver = FirstResponderPreserver(window: table.window)
         
-        if !deferredUpdate && oldObjects.count > 0 && objects.count > 0 && animated {
-            table.reload(oldData: oldObjects,
-                         newData: objects, deferred: { [weak self] in
-                self?.reloadVisibleCells()
-            }, updateObjects: { [weak self] in
-                self?.objects = objects
-            }, addAnimation: delegate.animationForAdding(table: self),
-                         deleteAnimation: delegate.animationForDeleting(table: self))
-        } else {
-            self.objects = objects
-            table.reloadData()
-            table.layoutSubtreeIfNeeded()
-            deferredUpdate = false
-        }
+        table.reload(oldData: self.objects,
+                     newData: objects,
+                     deferred: { reloadVisibleCells() },
+                     updateObjects: { self.objects = objects },
+                     addAnimation: delegate.animationForAdding(table: self),
+                     deleteAnimation: delegate.animationForDeleting(table: self),
+                     animated: animated)
+        
         preserver.commit()
         
         if delegate.shouldShowNoData(objects: objects, table: self) {
@@ -198,6 +168,12 @@ open class Table: StaticSetupObject {
     }
     
     public func reloadVisibleCells() {
+        if !visible {
+            deferredReload = true
+            return
+        }
+        
+        deferredReload = false
         let rect = table.visibleRect
         let rows = table.rows(in: rect)
         
@@ -215,14 +191,10 @@ open class Table: StaticSetupObject {
     }
     
     @objc private func updateHeights() {
-        if visible {
-            if delegate != nil {
-                table.beginUpdates()
-                table.endUpdates()
-            }
-        } else {
-            deferredUpdate = true
-        }
+        if delegate == nil { return }
+        
+        table.beginUpdates()
+        table.endUpdates()
     }
     
     fileprivate func cachedHeightKeyFor(object: AnyHashable) -> NSValue {
@@ -233,17 +205,11 @@ open class Table: StaticSetupObject {
     }
     
     open override func responds(to aSelector: Selector!) -> Bool {
-        if !super.responds(to: aSelector) {
-            return delegate?.responds(to: aSelector) ?? false
-        }
-        return true
+        super.responds(to: aSelector) ? true : (delegate?.responds(to: aSelector) ?? false)
     }
     
     open override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        if !super.responds(to: aSelector) {
-            return delegate
-        }
-        return self
+        super.responds(to: aSelector) ? self : delegate
     }
     
     public var defaultWidth: CGFloat {
@@ -251,8 +217,9 @@ open class Table: StaticSetupObject {
         return scrollView.width - contentInsets.left - contentInsets.right - (scrollView.verticalScroller?.width ?? 0)
     }
     
-    @objc public func doubleClickAction(_ sender: Any) {
+    @objc private func doubleClickAction(_ sender: Any) {
         let clicked = table.clickedRow
+        
         if clicked >= 0 && clicked < objects.count {
             delegate?.doubleClickAction(object: objects[clicked], table: self)
         }
@@ -301,6 +268,7 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
             
             let id = NSUserInterfaceItemIdentifier(rawValue: createCell.type.classNameWithoutModule())
             let cell = (tableView.makeView(withIdentifier: id, owner: nil) ?? createCell.type.loadFromNib()) as! NSTableRowView
+            cell.identifier = id
             createCell.fill(cell)
             (cell as? ObjectHolder)?.object = object
             return cell

@@ -6,24 +6,6 @@ import AppKit
 
 public extension NSWindow {
     
-    static func loadFromNib() -> Self {
-        let nibName = classNameWithoutModule()
-        
-        let nib = NSNib(nibNamed: nibName, bundle: .main)
-        
-        var topLevelObjects: NSArray?
-        nib?.instantiate(withOwner: nil, topLevelObjects: &topLevelObjects)
-        
-        if let array = topLevelObjects {
-            for object in array {
-                if let object = object as? Self {
-                    return object
-                }
-            }
-        }
-        fatalError("Could not load view from nib named \(nibName)")
-    }
-    
     func presentAboveCurrentWindow() {
         let window = NSApplication.shared.keyWindow
         makeKeyAndOrderFront(nil)

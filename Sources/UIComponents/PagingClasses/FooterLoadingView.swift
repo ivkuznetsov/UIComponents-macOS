@@ -15,16 +15,11 @@ public class FooterLoadingView: NSView {
     open var state: State = .stop {
         didSet {
             if state != oldValue {
-                switch state {
-                case .stop:
-                    indicatorView.stopAnimation(nil)
-                    retryButton.isHidden = true
-                case .loading:
+                retryButton.isHidden = state != .failed
+                if state == .loading {
                     indicatorView.startAnimation(nil)
-                    retryButton.isHidden = true
-                case .failed:
+                } else {
                     indicatorView.stopAnimation(nil)
-                    retryButton.isHidden = false
                 }
             }
         }
@@ -33,11 +28,6 @@ public class FooterLoadingView: NSView {
     
     @IBOutlet public var indicatorView: NSProgressIndicator!
     @IBOutlet public var retryButton: NSButton!
-    
-    open override func awakeFromNib() {
-        super.awakeFromNib()
-        state = .stop
-    }
     
     @IBAction private func retryAction(_ sender: Any?) {
         retry?()
