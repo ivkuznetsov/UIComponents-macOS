@@ -5,6 +5,11 @@
 import AppKit
 import CommonUtils
 
+public class NoEmptyCellsTableView: NSTableView {
+    
+    override public func drawGrid(inClipRect clipRect: NSRect) { }
+}
+
 public protocol TableDelegate: NSTableViewDelegate {
     
     //fade by default
@@ -101,9 +106,7 @@ public class Table: StaticSetupObject {
         setup()
     }
     
-    open lazy var noObjectsView: NoObjectsView = NoObjectsView.loadFromNib()
-    
-    private var scrollObserver: Any?
+    open lazy var noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
     
     func setup() {
         table.menu = NSMenu()
@@ -115,11 +118,11 @@ public class Table: StaticSetupObject {
         table.doubleAction = #selector(doubleClickAction(_:))
         table.usesAutomaticRowHeights = true
         
-        scrollObserver = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { [weak self] _ in
             if let wSelf = self {
                 wSelf.delegate?.scrollViewDidScroll(table: wSelf)
             }
-        }
+        }.retained(by: self)
     }
     
     open func set(_ objects: [AnyHashable], animated: Bool) {
@@ -178,23 +181,6 @@ public class Table: StaticSetupObject {
         super.responds(to: aSelector) ? self : delegate
     }
     
-    public func setNeedUpdateHeights() {
-        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(updateHeights), object: nil)
-        perform(#selector(updateHeights), with: nil, afterDelay: 0)
-    }
-    
-    @objc private func updateHeights() {
-        if delegate == nil { return }
-        
-        table.beginUpdates()
-        table.endUpdates()
-    }
-    
-    public var defaultWidth: CGFloat {
-        let contentInsets = scrollView.contentInsets
-        return scrollView.width - contentInsets.left - contentInsets.right - (scrollView.verticalScroller?.width ?? 0)
-    }
-    
     @objc private func doubleClickAction(_ sender: Any) {
         let clicked = table.clickedRow
         
@@ -209,19 +195,11 @@ public class Table: StaticSetupObject {
         preserver.commit()
     }
     
-    public var selectedItem: AnyHashable? {
-        let row = table.selectedRow
-        if row >= 0 && row < objects.count {
-            return objects[row]
-        }
-        return nil
-    }
+    public var selectedItem: AnyHashable? { objects[safe: table.selectedRow] }
     
     deinit {
         table.delegate = nil
         table.dataSource = nil
-        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(updateHeights), object: nil)
-        NotificationCenter.default.removeObserver(self)
     }
 }
 
@@ -235,18 +213,11 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
         let object = objects[row]
         
         if let view = object as? NSView {
-            
-            let id = NSUserInterfaceItemIdentifier(rawValue: "\(view.hash)")
-            let cell = (tableView.makeView(withIdentifier: id, owner: nil) ?? ContainerTableCell(frame: .zero)) as! ContainerTableCell
-            cell.identifier = id
-            cell.attach(viewToAttach: view)
+            let cell = table.createCell(for: ContainerTableCell.self, identifier: "\(view.hash)", source: .code)
+            cell.attach(viewToAttach: view, type: .constraints)
             return cell
-            
         } else if let createCell = delegate?.createCell(object: object, table: self) {
-            
-            let id = NSUserInterfaceItemIdentifier(rawValue: createCell.type.classNameWithoutModule())
-            let cell = (tableView.makeView(withIdentifier: id, owner: nil) ?? createCell.type.loadFromNib()) as! NSTableRowView
-            cell.identifier = id
+            let cell = table.createCell(for: createCell.type, source: .nib)
             createCell.fill(cell)
             return cell
         }
@@ -256,11 +227,12 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
     public func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
         var height: CGFloat?
         let object = objects[row]
+        let key = object.cachedHeightKey
         
-        height = cachedHeights[object.cachedHeightKey]
+        height = cachedHeights[key]
         if height == nil {
             height = delegate?.cellHeight(object: object, table: self)
-            cachedHeights[object.cachedHeightKey] = height
+            cachedHeights[key] = height
         }
         return height ?? -1
     }
@@ -272,13 +244,8 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
             delegate?.deselectedAll(table: self)
             return
         }
-        
         selected.forEach {
-            let object = objects[$0]
-            
-            let result = delegate?.action(object: object, table: self)
-            
-            if result == nil || result! == .deselect {
+            if delegate?.action(object: objects[$0], table: self) == .deselect {
                 table.deselectRow($0)
             }
         }
@@ -293,10 +260,8 @@ extension Table: NSMenuDelegate {
     
     public func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-
-        let clicked = table.clickedRow
-        if clicked >= 0 && clicked < objects.count {
-            delegate?.menuItems(object: objects[clicked], table: self).forEach { menu.addItem($0) }
+        if let object = objects[safe: table.clickedRow] {
+            delegate?.menuItems(object: object, table: self).forEach { menu.addItem($0) }
         }
     }
 }

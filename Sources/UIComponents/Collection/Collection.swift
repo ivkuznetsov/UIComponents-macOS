@@ -5,6 +5,16 @@
 import AppKit
 import CommonUtils
 
+open class CollectionView: NSCollectionView {
+    
+    open override var acceptsFirstResponder: Bool { false }
+    
+    open override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        (delegate as? Collection)?.visible = window != nil
+    }
+}
+
 public protocol CollectionDelegate: NSCollectionViewDelegate {
     
     func shouldShowNoData(_ objects: [AnyHashable], collection: Collection) -> Bool
@@ -46,8 +56,6 @@ open class Collection: StaticSetupObject {
     
     public private(set) var objects: [AnyHashable] = []
     
-    public var layout: NSCollectionViewFlowLayout? { collection.collectionViewLayout as? NSCollectionViewFlowLayout }
-    
     public var visible = true {
         didSet {
             if visible && visible != oldValue && !updatingData && deferredReload {
@@ -60,7 +68,7 @@ open class Collection: StaticSetupObject {
     public var expandsBottom: Bool = true
     
     // empty state
-    public lazy var noObjectsView = NoObjectsView.loadFromNib()
+    public lazy var noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
     
     private var updatingData = false
     private var deferredReload = false
@@ -191,17 +199,6 @@ open class Collection: StaticSetupObject {
         super.responds(to: aSelector) ? self : delegate
     }
     
-    public var defaultWidth: CGFloat {
-        let contentInsets = scrollView.contentInsets
-        let sectionInsets = layout?.sectionInset ?? NSEdgeInsets()
-        var verticalScrollerWidth: CGFloat {
-            guard let scroller = scrollView.verticalScroller else { return 0.0 }
-            guard scroller.scrollerStyle != .overlay else { return 0.0 }
-            return NSScroller.scrollerWidth(for: scroller.controlSize, scrollerStyle: scroller.scrollerStyle)
-        }
-        return scrollView.width - sectionInsets.left - sectionInsets.right - contentInsets.left - contentInsets.right - verticalScrollerWidth
-    }
-    
     deinit {
         collection.delegate = nil
         collection.dataSource = nil
@@ -220,15 +217,14 @@ extension Collection: NSCollectionViewDataSource {
         let object = objects[indexPath.item]
         
         if let view = object as? NSView {
-            let identifier = NSUserInterfaceItemIdentifier(rawValue: ContainerCollectionItem.classNameWithoutModule())
-            let item = collection.makeItem(withIdentifier: identifier, for: indexPath) as! ContainerCollectionItem
+            let item = collection.createCell(for: ContainerCollectionItem.self, source: .code, at: indexPath)
             item.attach(view)
             return item
         }
         
         let createItem = delegate!.createCell(object: object, collection: self)
         
-        let item = collection.make(createItem.type, at: indexPath)
+        let item = collection.createCell(for: createItem.type, at: indexPath)
         _ = item.view
         createItem.fill(item)
         return item
@@ -259,7 +255,7 @@ extension Collection: NSCollectionViewDelegateFlowLayout {
         
         if let view = object as? NSView {
             
-            let defaultWidth = self.defaultWidth
+            let defaultWidth = collection.defaultWidth
             
             var resultSize: NSSize = .zero
             

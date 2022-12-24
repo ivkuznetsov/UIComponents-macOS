@@ -50,8 +50,8 @@ public class OperationHelper {
     ///by default retry appears in all operations
     public var shouldSupplyRetry: ((Error)->Bool)?
     
-    public lazy var loadingView = LoadingView.loadFromNib()
-    public lazy var failedView = FailedView.loadFromNib()
+    public lazy var loadingView = LoadingView.loadFromNib(bundle: Bundle.module)
+    public lazy var failedView = FailedView.loadFromNib(bundle: Bundle.module)
     private var loadingBarView: LoadingBarView?
     private var loadingPanel: LoadingPanel?
     

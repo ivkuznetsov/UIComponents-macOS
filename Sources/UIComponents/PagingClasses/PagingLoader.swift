@@ -58,19 +58,17 @@ open class PagingLoader: StaticSetupObject {
         }
     }
     
-    private var scrollObserver: Any?
-    
     public required init(scrollView: NSScrollView, delegate: PagingLoaderDelegate) {
         self.scrollView = scrollView
         self.delegate = delegate
         super.init()
         self.fetchedItems = (delegate as? PagingCachable)?.loadFirstPageFromCache() ?? []
         
-        scrollObserver = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { [weak self] _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self?.loadModeIfNeeded()
             }
-        }
+        }.retained(by: self)
     }
     
     func set(fetchedItems: [AnyHashable], offset: Any?) {
@@ -149,11 +147,7 @@ open class PagingLoader: StaticSetupObject {
             }
         }
         fetchedItems = array
-        
-        NSAnimationContext.runAnimationGroup {
-            $0.duration = 0
-            delegate.reloadView(true)
-        }
+        delegate.reloadView(false)
     }
     
     func filterFetchedItems(_ closure: (AnyHashable)->Bool) {
