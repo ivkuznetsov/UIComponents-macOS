@@ -3,6 +3,7 @@
 //
 
 import AppKit
+import CommonUtils
 
 public class PagingTable: Table {
     
@@ -10,7 +11,12 @@ public class PagingTable: Table {
     public var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
     public init(list: NSTableView, pagingDelegate: PagingLoaderDelegate & TableDelegate) {
-        self.loader = pagingDelegate.pagingLoader().init(scrollView: list.enclosingScrollView!, delegate: pagingDelegate)
+        loader = pagingDelegate.pagingLoader().init(scrollView: list.enclosingScrollView!,
+                                                    delegate: pagingDelegate,
+                                                    setFooterVisible: { [weak pagingDelegate] visible, footer in
+            pagingDelegate?.reloadView(true)
+        })
+        loader.footerLoadingView = FooterLoadingView.loadFromNib(bundle: Bundle.module)
         super.init(list: list, delegate: pagingDelegate)
     }
     
@@ -20,8 +26,8 @@ public class PagingTable: Table {
     
     open override func set(_ objects: [AnyHashable], animated: Bool = false, completion: (()->())? = nil) {
         var result = objects
-        if let visibleFooter = loader.visibleFooter {
-            result.append(visibleFooter)
+        if loader.footerVisible, !result.contains(loader.footerLoadingView) {
+            result.append(loader.footerLoadingView)
         }
         super.set(result, animated: animated, completion: completion)
     }

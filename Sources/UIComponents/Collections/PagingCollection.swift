@@ -3,6 +3,7 @@
 //
 
 import AppKit
+import CommonUtils
 
 open class PagingCollection: Collection {
     
@@ -10,7 +11,12 @@ open class PagingCollection: Collection {
     public var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
     public init(list: CollectionView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
-        loader = pagingDelegate.pagingLoader().init(scrollView: list.enclosingScrollView!, delegate: pagingDelegate)
+        loader = pagingDelegate.pagingLoader().init(scrollView: list.enclosingScrollView!,
+                                                    delegate: pagingDelegate,
+                                                    setFooterVisible: { [weak pagingDelegate] visible, footer in
+            pagingDelegate?.reloadView(true)
+        })
+        loader.footerLoadingView = FooterLoadingView.loadFromNib(bundle: Bundle.module)
         super.init(list: list, delegate: pagingDelegate)
     }
     
@@ -20,8 +26,8 @@ open class PagingCollection: Collection {
     
     fileprivate func insertFooter(_ objects: [AnyHashable]) -> [AnyHashable] {
         var result = objects
-        if let visibleFooter = loader.visibleFooter, !result.contains(visibleFooter) {
-            result.append(visibleFooter)
+        if loader.footerVisible, !result.contains(loader.footerLoadingView) {
+            result.append(loader.footerLoadingView)
         }
         return result
     }
@@ -35,8 +41,8 @@ open class ReversePagingCollection: PagingCollection {
     
     override public func insertFooter(_ objects: [AnyHashable]) -> [AnyHashable] {
         var result = objects
-        if let visibleFooter = loader.visibleFooter, !result.contains(visibleFooter) {
-            result.insert(visibleFooter, at: 0)
+        if loader.footerVisible, !result.contains(loader.footerLoadingView) {
+            result.insert(loader.footerLoadingView, at: 0)
         }
         return result
     }

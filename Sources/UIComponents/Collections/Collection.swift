@@ -45,7 +45,7 @@ public extension CollectionDelegate {
     func doubleClick(object: AnyHashable, collection: Collection) { }
 }
 
-open class Collection: BaseList<CollectionView, CollectionDelegate, CGSize> {
+open class Collection: BaseList<CollectionView, CollectionDelegate, CGSize, ContainerCollectionItem> {
     
     public typealias Result = SelectionResult
     
@@ -73,11 +73,7 @@ open class Collection: BaseList<CollectionView, CollectionDelegate, CGSize> {
         scrollView.layer?.masksToBounds = true
         scrollView.canDrawConcurrently = true
         
-        let layout = VerticalLeftAlignedLayout()
-        layout.scrollDirection = .vertical
-        layout.minimumLineSpacing = 0
-        layout.minimumInteritemSpacing = 0
-        collection.collectionViewLayout = layout
+        collection.collectionViewLayout = VerticalLeftAlignedLayout()
         scrollView.documentView = collection
         scrollView.drawsBackground = true
         collection.backgroundColors = [.clear]
@@ -137,6 +133,7 @@ extension Collection: NSCollectionViewDataSource {
         if let view = object as? NSView {
             let item = list.createCell(for: ContainerCollectionItem.self, source: .code, at: indexPath)
             item.attach(view)
+            setupViewContainer?(item)
             return item
         }
         

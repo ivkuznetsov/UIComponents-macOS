@@ -63,7 +63,7 @@ public extension TableDelegate {
     func scrollViewDidScroll(table: Table) { }
 }
 
-public class Table: BaseList<NSTableView, TableDelegate, CGFloat> {
+public class Table: BaseList<NSTableView, TableDelegate, CGFloat, ContainerTableCell> {
     
     public typealias Result = SelectionResult
     
@@ -173,6 +173,7 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
         if let view = object as? NSView {
             let cell = list.createCell(for: ContainerTableCell.self, identifier: "\(view.hash)", source: .code)
             cell.attach(viewToAttach: view, type: .constraints)
+            setupViewContainer?(cell)
             return cell
         } else if let createCell = delegate?.createCell(object: object, table: self) {
             let cell = list.createCell(for: createCell.type, source: .nib)

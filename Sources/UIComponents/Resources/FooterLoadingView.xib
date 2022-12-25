@@ -9,7 +9,7 @@
         <customObject id="-2" userLabel="File's Owner"/>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customView wantsLayer="YES" id="c22-O7-iKe" customClass="FooterLoadingView" customModule="UIComponents">
+        <customView wantsLayer="YES" id="c22-O7-iKe" customClass="FooterLoadingView" customModule="CommonUtils">
             <rect key="frame" x="0.0" y="0.0" width="300" height="30"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
