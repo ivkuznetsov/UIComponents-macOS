@@ -8,6 +8,11 @@ import CommonUtils
 public class NoEmptyCellsTableView: NSTableView {
     
     override public func drawGrid(inClipRect clipRect: NSRect) { }
+    
+    open override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        (delegate as? Table)?.visible = window != nil
+    }
 }
 
 public protocol TableDelegate: NSTableViewDelegate {
@@ -58,30 +63,11 @@ public extension TableDelegate {
     func scrollViewDidScroll(table: Table) { }
 }
 
-public class Table: StaticSetupObject {
+public class Table: BaseList<NSTableView, TableDelegate, CGFloat> {
     
     public typealias Result = SelectionResult
     
-    public let table: NSTableView
-    weak var delegate: TableDelegate?
-    public private(set) var objects: [AnyHashable] = []
-    
-    private var deferredReload = false
-    public var visible: Bool = true {
-        didSet {
-            if visible && (visible != oldValue) && deferredReload {
-                reloadVisibleCells()
-            }
-        }
-    }
-    
-    private var cachedHeights: [NSValue:CGFloat] = [:]
-    
-    public convenience init(view: NSView, delegate: TableDelegate) {
-        self.init(table: type(of: self).createTable(view: view), delegate: delegate)
-    }
-    
-    static func createTable(view: NSView) -> NSTableView {
+    public override class func createList(in view: NSView) -> NSTableView {
         let scrollView = NSScrollView()
         let table = NoEmptyCellsTableView(frame: .zero)
         
@@ -97,110 +83,81 @@ public class Table: StaticSetupObject {
         return table
     }
     
-    public init(table: NSTableView, delegate: TableDelegate) {
-        self.table = table
-        self.delegate = delegate
-        super.init()
+    public override init(list: NSTableView, delegate: TableDelegate) {
+        super.init(list: list, delegate: delegate)
         
-        table.menu = NSMenu()
-        table.menu?.delegate = self
-        table.wantsLayer = true
-        table.delegate = self
-        table.dataSource = self
-        table.target = self
-        table.doubleAction = #selector(doubleClickAction(_:))
-        table.usesAutomaticRowHeights = true
+        noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
+        list.menu = NSMenu()
+        list.menu?.delegate = self
+        list.wantsLayer = true
+        list.delegate = self
+        list.dataSource = self
+        list.target = self
+        list.doubleAction = #selector(doubleClickAction(_:))
+        list.usesAutomaticRowHeights = true
         
-        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: table.enclosingScrollView!.contentView, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: list.enclosingScrollView!.contentView, queue: nil) { [weak self] _ in
             if let wSelf = self {
                 wSelf.delegate?.scrollViewDidScroll(table: wSelf)
             }
         }.retained(by: self)
     }
     
-    open lazy var noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
-    
-    open func set(_ objects: [AnyHashable], animated: Bool) {
+    public override func updateList(_ objects: [AnyHashable], animated: Bool, updateObjects: (Set<Int>) -> (), completion: @escaping () -> ()) {
         guard let delegate = delegate else { return }
         
-        // remove missed estimated heights
-        var set = Set(cachedHeights.keys)
-        objects.forEach { set.remove($0.cachedHeightKey) }
-        set.forEach { cachedHeights[$0] = nil }
-        
-        let preserver = FirstResponderPreserver(window: table.window)
-        
-        table.reload(oldData: self.objects,
-                     newData: objects,
-                     updateObjects: {
-            reloadVisibleCells(exceping: $0)
-            self.objects = objects
-        },
-                     addAnimation: delegate.animationForAdding(table: self),
-                     deleteAnimation: delegate.animationForDeleting(table: self),
-                     animated: animated)
-        
-        preserver.commit()
-        
-        if delegate.shouldShowNoData(objects: objects, table: self) {
-            table.attach(noObjectsView)
-        } else {
-            noObjectsView.removeFromSuperview()
+        FirstResponderPreserver.performWith(list.window) {
+            list.reload(oldData: self.objects,
+                        newData: objects,
+                        updateObjects: updateObjects,
+                        addAnimation: delegate.animationForAdding(table: self),
+                        deleteAnimation: delegate.animationForDeleting(table: self),
+                        animated: animated)
         }
         delegate.scrollViewDidScroll(table: self)
+        completion()
     }
     
-    public func reloadVisibleCells(exceping: Set<Int> = Set()) {
-        if visible {
-            deferredReload = false
-            let rows = table.rows(in: table.visibleRect)
-            
-            for i in rows.location..<(rows.location + rows.length) {
-                if !exceping.contains(i), let view = table.rowView(atRow: i, makeIfNecessary: false) {
-                    let object = objects[i]
-                    
-                    if object as? NSView == nil {
-                        delegate?.createCell(object: object, table: self)?.fill(view)
-                    }
+    public override func reloadVisibleCells(excepting: Set<Int> = Set()) {
+        let rows = list.rows(in: list.visibleRect)
+        
+        for i in rows.location..<(rows.location + rows.length) {
+            if !excepting.contains(i),
+                let view = list.rowView(atRow: i, makeIfNecessary: false),
+                let object = objects[safe: i] {
+                if object as? NSView == nil {
+                    delegate?.createCell(object: object, table: self)?.fill(view)
                 }
             }
-        } else {
-            deferredReload = true
         }
-    }
-    
-    open override func responds(to aSelector: Selector!) -> Bool {
-        super.responds(to: aSelector) ? true : (delegate?.responds(to: aSelector) ?? false)
-    }
-    
-    open override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        super.responds(to: aSelector) ? self : delegate
     }
     
     @objc private func doubleClickAction(_ sender: Any) {
-        let clicked = table.clickedRow
-        
-        if clicked >= 0 && clicked < objects.count {
-            delegate?.doubleClickAction(object: objects[clicked], table: self)
+        if let object = objects[safe: list.clickedRow] {
+            delegate?.doubleClickAction(object: object, table: self)
         }
     }
     
     public var selectedItem: AnyHashable? {
         set {
             if let object = newValue, let index = objects.firstIndex(of: object) {
-                FirstResponderPreserver.performWith(table.window) {
-                    table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+                FirstResponderPreserver.performWith(list.window) {
+                    list.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
                 }
             } else {
-                table.deselectAll(nil)
+                list.deselectAll(nil)
             }
         }
-        get { objects[safe: table.selectedRow] }
+        get { objects[safe: list.selectedRow] }
+    }
+    
+    public override func shouldShowNoData(_ objects: [AnyHashable]) -> Bool {
+        delegate?.shouldShowNoData(objects: objects, table: self) == true
     }
     
     deinit {
-        table.delegate = nil
-        table.dataSource = nil
+        list.delegate = nil
+        list.dataSource = nil
     }
 }
 
@@ -214,11 +171,11 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
         let object = objects[row]
         
         if let view = object as? NSView {
-            let cell = table.createCell(for: ContainerTableCell.self, identifier: "\(view.hash)", source: .code)
+            let cell = list.createCell(for: ContainerTableCell.self, identifier: "\(view.hash)", source: .code)
             cell.attach(viewToAttach: view, type: .constraints)
             return cell
         } else if let createCell = delegate?.createCell(object: object, table: self) {
-            let cell = table.createCell(for: createCell.type, source: .nib)
+            let cell = list.createCell(for: createCell.type, source: .nib)
             createCell.fill(cell)
             return cell
         }
@@ -226,34 +183,28 @@ extension Table: NSTableViewDataSource, NSTableViewDelegate {
     }
     
     public func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        var height: CGFloat?
         let object = objects[row]
-        let key = object.cachedHeightKey
+        var height = cachedSize(for: object)
         
-        height = cachedHeights[key]
         if height == nil {
             height = delegate?.cellHeight(object: object, table: self)
-            cachedHeights[key] = height
+            cache(size: height, for: object)
         }
         return height ?? -1
     }
     
     public func tableViewSelectionDidChange(_ notification: Notification) {
-        let selected = table.selectedRowIndexes
+        let selected = list.selectedRowIndexes
         
-        if selected.count == 0 {
+        if selected.isEmpty {
             delegate?.deselectedAll(table: self)
-            return
-        }
-        selected.forEach {
-            if delegate?.action(object: objects[$0], table: self) == .deselect {
-                table.deselectRow($0)
+        } else {
+            selected.forEach {
+                if delegate?.action(object: objects[$0], table: self) == .deselect {
+                    list.deselectRow($0)
+                }
             }
         }
-    }
-    
-    public func tableViewColumnDidResize(_ notification: Notification) {
-        cachedHeights.removeAll()
     }
 }
 
@@ -261,7 +212,7 @@ extension Table: NSMenuDelegate {
     
     public func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        if let object = objects[safe: table.clickedRow] {
+        if let object = objects[safe: list.clickedRow] {
             delegate?.menuItems(object: object, table: self).forEach { menu.addItem($0) }
         }
     }

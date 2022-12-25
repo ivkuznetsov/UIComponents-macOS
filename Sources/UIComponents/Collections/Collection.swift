@@ -45,53 +45,28 @@ public extension CollectionDelegate {
     func doubleClick(object: AnyHashable, collection: Collection) { }
 }
 
-open class Collection: StaticSetupObject {
+open class Collection: BaseList<CollectionView, CollectionDelegate, CGSize> {
     
     public typealias Result = SelectionResult
-    
-    public let collection: CollectionView
-    
-    weak var delegate: CollectionDelegate?
-    
-    public private(set) var objects: [AnyHashable] = []
-    
-    public var visible = true {
-        didSet {
-            if visible && visible != oldValue && !updatingData && deferredReload {
-                reloadVisibleCells()
-            }
-        }
-    }
     
     // when new items appears scroll aligns to the top
     public var expandsBottom: Bool = true
     
-    // empty state
-    public lazy var noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
-    
-    private var updatingData = false
-    private var deferredReload = false
-    
-    public init(collection: CollectionView, delegate: CollectionDelegate) {
-        self.collection = collection
-        self.delegate = delegate
-        super.init()
+    public override init(list: CollectionView, delegate: CollectionDelegate) {
+        super.init(list: list, delegate: delegate)
         
-        collection.isSelectable = true
-        collection.delegate = self
-        collection.dataSource = self
+        noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
+        list.isSelectable = true
+        list.delegate = self
+        list.dataSource = self
         
         let recognizer = NSClickGestureRecognizer(target: self, action: #selector(doubleClickAction(_:)))
         recognizer.numberOfClicksRequired = 2
         recognizer.delaysPrimaryMouseButtonEvents = false
-        collection.addGestureRecognizer(recognizer)
+        list.addGestureRecognizer(recognizer)
     }
     
-    public convenience init(view: NSView, delegate: CollectionDelegate) {
-        self.init(collection: type(of: self).createCollection(view: view), delegate: delegate)
-    }
-    
-    static func createCollection(view: NSView) -> CollectionView {
+    open override class func createList(in view: NSView) -> CollectionView {
         let scrollView = NSScrollView()
         let collection = CollectionView(frame: .zero)
         scrollView.wantsLayer = true
@@ -110,90 +85,41 @@ open class Collection: StaticSetupObject {
         return collection
     }
     
+    open override func reloadVisibleCells(excepting: Set<Int> = Set()) {
+        list.visibleItems().forEach { item in
+            if let indexPath = list.indexPath(for: item), !excepting.contains(indexPath.item) {
+                let object = objects[indexPath.item]
+                
+                if object as? NSView == nil {
+                    delegate?.createCell(object: object, collection: self)?.fill(item)
+                }
+            }
+        }
+    }
+    
     @objc private func doubleClickAction(_ sender: NSClickGestureRecognizer) {
-        let location = sender.location(in: collection)
-        if let indexPath = collection.indexPathForItem(at: location) {
+        let location = sender.location(in: list)
+        if let indexPath = list.indexPathForItem(at: location) {
             delegate?.doubleClick(object: objects[indexPath.item], collection: self)
         }
     }
     
-    private var updateCompletion: (()->())?
-    
-    public func reloadVisibleCells(exceping: Set<Int> = Set()) {
-        if visible {
-            collection.visibleItems().forEach { item in
-                if let indexPath = collection.indexPath(for: item), !exceping.contains(indexPath.item) {
-                    let object = objects[indexPath.item]
-                    
-                    if object as? NSView == nil {
-                        delegate?.createCell(object: object, collection: self)?.fill(item)
-                    }
-                }
-            }
-        } else {
-            deferredReload = true
-        }
+    open override func updateList(_ objects: [AnyHashable], animated: Bool, updateObjects: (Set<Int>) -> (), completion: @escaping () -> ()) {
+        list.reload(animated: animated,
+                    expandBottom: expandsBottom,
+                    oldData: self.objects,
+                    newData: objects,
+                    updateObjects: updateObjects,
+                    completion: completion)
     }
     
-    private var lazyObjects: [AnyHashable]?
-    public func set(_ objects: [AnyHashable], animated: Bool, completion: (()->())? = nil) {
-        let resultCompletion = { [weak self] in
-            guard let wSelf = self else { return }
-            
-            let completion = wSelf.updateCompletion
-            wSelf.updateCompletion = nil
-            wSelf.updatingData = false
-            
-            if wSelf.delegate?.shouldShowNoData(objects, collection: wSelf) == true {
-                wSelf.collection.attach(wSelf.noObjectsView)
-            } else {
-                wSelf.noObjectsView.removeFromSuperview()
-            }
-            completion?()
-        }
-        updateCompletion = completion
-    
-        if updatingData {
-            lazyObjects = objects
-        } else {
-            updatingData = true
-            
-            internalSet(objects, animated: animated) { [weak self] in
-                guard let wSelf = self else { return }
-                
-                if let objects = wSelf.lazyObjects {
-                    wSelf.lazyObjects = nil
-                    wSelf.internalSet(objects, animated: false, completion: resultCompletion)
-                } else {
-                    resultCompletion()
-                }
-            }
-        }
-    }
-    
-    private func internalSet(_ objects: [AnyHashable], animated: Bool, completion: @escaping ()->()) {
-        collection.reload(animated: animated,
-                          expandBottom: expandsBottom,
-                          oldData: self.objects,
-                          newData: objects,
-                          updateObjects: {
-                            reloadVisibleCells(exceping: $0)
-                            self.objects = objects
-                          },
-                          completion: completion)
-    }
-    
-    open override func responds(to aSelector: Selector!) -> Bool {
-        super.responds(to: aSelector) ? true : (delegate?.responds(to: aSelector) ?? false)
-    }
-    
-    open override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        super.responds(to: aSelector) ? self : delegate
+    public override func shouldShowNoData(_ objects: [AnyHashable]) -> Bool {
+        delegate?.shouldShowNoData(objects, collection: self) == true
     }
     
     deinit {
-        collection.delegate = nil
-        collection.dataSource = nil
+        list.delegate = nil
+        list.dataSource = nil
     }
 }
 
@@ -209,14 +135,14 @@ extension Collection: NSCollectionViewDataSource {
         let object = objects[indexPath.item]
         
         if let view = object as? NSView {
-            let item = collection.createCell(for: ContainerCollectionItem.self, source: .code, at: indexPath)
+            let item = list.createCell(for: ContainerCollectionItem.self, source: .code, at: indexPath)
             item.attach(view)
             return item
         }
         
         let createItem = delegate!.createCell(object: object, collection: self)
         
-        let item = collection.createCell(for: createItem.type, at: indexPath)
+        let item = list.createCell(for: createItem.type, at: indexPath)
         _ = item.view
         createItem.fill(item)
         return item
@@ -247,7 +173,7 @@ extension Collection: NSCollectionViewDelegateFlowLayout {
         
         if let view = object as? NSView {
             
-            let defaultWidth = collection.defaultWidth
+            let defaultWidth = list.defaultWidth
             
             var resultSize: NSSize = .zero
             
@@ -268,7 +194,12 @@ extension Collection: NSCollectionViewDelegateFlowLayout {
             }
             return NSSize(width: floor(resultSize.width), height: ceil(resultSize.height))
         } else {
-            return delegate?.cellSizeFor(object: object, collection: self) ?? .zero
+            var size = cachedSize(for: object)
+            if size == nil {
+                size = delegate?.cellSizeFor(object: object, collection: self)
+                cache(size: size, for: object)
+            }
+            return size ?? .zero
         }
     }
 }

@@ -9,16 +9,16 @@ open class PagingCollection: Collection {
     public let loader: PagingLoader
     public var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
-    public init(collection: CollectionView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
-        self.loader = pagingDelegate.pagingLoader().init(scrollView: collection.enclosingScrollView!, delegate: pagingDelegate)
-        super.init(collection: collection, delegate: pagingDelegate)
+    public init(list: CollectionView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
+        loader = pagingDelegate.pagingLoader().init(scrollView: list.enclosingScrollView!, delegate: pagingDelegate)
+        super.init(list: list, delegate: pagingDelegate)
     }
     
     public convenience init(view: NSView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
-        self.init(collection: type(of: self).createCollection(view: view), pagingDelegate: pagingDelegate)
+        self.init(list: type(of: self).createList(in: view), pagingDelegate: pagingDelegate)
     }
     
-    func insertFooter(_ objects: [AnyHashable]) -> [AnyHashable] {
+    fileprivate func insertFooter(_ objects: [AnyHashable]) -> [AnyHashable] {
         var result = objects
         if let visibleFooter = loader.visibleFooter, !result.contains(visibleFooter) {
             result.append(visibleFooter)
