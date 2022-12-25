@@ -62,7 +62,6 @@ public class Table: StaticSetupObject {
     
     public typealias Result = SelectionResult
     
-    public let scrollView: NSScrollView
     public let table: NSTableView
     weak var delegate: TableDelegate?
     public private(set) var objects: [AnyHashable] = []
@@ -100,15 +99,9 @@ public class Table: StaticSetupObject {
     
     public init(table: NSTableView, delegate: TableDelegate) {
         self.table = table
-        self.scrollView = table.enclosingScrollView!
         self.delegate = delegate
         super.init()
-        setup()
-    }
-    
-    open lazy var noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
-    
-    func setup() {
+        
         table.menu = NSMenu()
         table.menu?.delegate = self
         table.wantsLayer = true
@@ -118,12 +111,14 @@ public class Table: StaticSetupObject {
         table.doubleAction = #selector(doubleClickAction(_:))
         table.usesAutomaticRowHeights = true
         
-        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: table.enclosingScrollView!.contentView, queue: nil) { [weak self] _ in
             if let wSelf = self {
                 wSelf.delegate?.scrollViewDidScroll(table: wSelf)
             }
         }.retained(by: self)
     }
+    
+    open lazy var noObjectsView = NoObjectsView.loadFromNib(bundle: Bundle.module)
     
     open func set(_ objects: [AnyHashable], animated: Bool) {
         guard let delegate = delegate else { return }
@@ -137,8 +132,10 @@ public class Table: StaticSetupObject {
         
         table.reload(oldData: self.objects,
                      newData: objects,
-                     deferred: { reloadVisibleCells() },
-                     updateObjects: { self.objects = objects },
+                     updateObjects: {
+            reloadVisibleCells(exceping: $0)
+            self.objects = objects
+        },
                      addAnimation: delegate.animationForAdding(table: self),
                      deleteAnimation: delegate.animationForDeleting(table: self),
                      animated: animated)
@@ -153,14 +150,13 @@ public class Table: StaticSetupObject {
         delegate.scrollViewDidScroll(table: self)
     }
     
-    public func reloadVisibleCells() {
+    public func reloadVisibleCells(exceping: Set<Int> = Set()) {
         if visible {
             deferredReload = false
-            
             let rows = table.rows(in: table.visibleRect)
             
             for i in rows.location..<(rows.location + rows.length) {
-                if let view = table.rowView(atRow: i, makeIfNecessary: false) {
+                if !exceping.contains(i), let view = table.rowView(atRow: i, makeIfNecessary: false) {
                     let object = objects[i]
                     
                     if object as? NSView == nil {
@@ -189,13 +185,18 @@ public class Table: StaticSetupObject {
         }
     }
     
-    public func select(index: Int) {
-        let preserver = FirstResponderPreserver(window: table.window)
-        table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
-        preserver.commit()
+    public var selectedItem: AnyHashable? {
+        set {
+            if let object = newValue, let index = objects.firstIndex(of: object) {
+                FirstResponderPreserver.performWith(table.window) {
+                    table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+                }
+            } else {
+                table.deselectAll(nil)
+            }
+        }
+        get { objects[safe: table.selectedRow] }
     }
-    
-    public var selectedItem: AnyHashable? { objects[safe: table.selectedRow] }
     
     deinit {
         table.delegate = nil

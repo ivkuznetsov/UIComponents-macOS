@@ -6,18 +6,11 @@ import AppKit
 
 public class PagingTable: Table {
     
-    private(set) var loader: PagingLoader!
-    private var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
-    
-    override func setup() {
-        super.setup()
-        
-        let loaderType = pagingDelegate?.pagingLoader() ?? PagingLoader.self
-        
-        self.loader = loaderType.init(scrollView: scrollView, delegate: pagingDelegate!)
-    }
+    public let loader: PagingLoader
+    public var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
     public init(table: NSTableView, pagingDelegate: PagingLoaderDelegate & TableDelegate) {
+        self.loader = pagingDelegate.pagingLoader().init(scrollView: table.enclosingScrollView!, delegate: pagingDelegate)
         super.init(table: table, delegate: pagingDelegate)
     }
     

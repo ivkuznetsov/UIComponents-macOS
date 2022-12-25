@@ -49,7 +49,6 @@ open class Collection: StaticSetupObject {
     
     public typealias Result = SelectionResult
     
-    public let scrollView: NSScrollView
     public let collection: CollectionView
     
     weak var delegate: CollectionDelegate?
@@ -75,10 +74,17 @@ open class Collection: StaticSetupObject {
     
     public init(collection: CollectionView, delegate: CollectionDelegate) {
         self.collection = collection
-        self.scrollView = collection.enclosingScrollView!
         self.delegate = delegate
         super.init()
-        setup()
+        
+        collection.isSelectable = true
+        collection.delegate = self
+        collection.dataSource = self
+        
+        let recognizer = NSClickGestureRecognizer(target: self, action: #selector(doubleClickAction(_:)))
+        recognizer.numberOfClicksRequired = 2
+        recognizer.delaysPrimaryMouseButtonEvents = false
+        collection.addGestureRecognizer(recognizer)
     }
     
     public convenience init(view: NSView, delegate: CollectionDelegate) {
@@ -104,20 +110,6 @@ open class Collection: StaticSetupObject {
         return collection
     }
     
-    func setup() {
-        collection.isSelectable = true
-        collection.delegate = self
-        collection.dataSource = self
-        collection.register(ContainerCollectionItem.self, forItemWithIdentifier: NSUserInterfaceItemIdentifier(rawValue: ContainerCollectionItem.classNameWithoutModule()))
-        
-        if delegate?.doubleClick != nil {
-            let recognizer = NSClickGestureRecognizer(target: self, action: #selector(doubleClickAction(_:)))
-            recognizer.numberOfClicksRequired = 2
-            recognizer.delaysPrimaryMouseButtonEvents = false
-            collection.addGestureRecognizer(recognizer)
-        }
-    }
-    
     @objc private func doubleClickAction(_ sender: NSClickGestureRecognizer) {
         let location = sender.location(in: collection)
         if let indexPath = collection.indexPathForItem(at: location) {
@@ -127,10 +119,10 @@ open class Collection: StaticSetupObject {
     
     private var updateCompletion: (()->())?
     
-    public func reloadVisibleCells() {
+    public func reloadVisibleCells(exceping: Set<Int> = Set()) {
         if visible {
             collection.visibleItems().forEach { item in
-                if let indexPath = collection.indexPath(for: item) {
+                if let indexPath = collection.indexPath(for: item), !exceping.contains(indexPath.item) {
                     let object = objects[indexPath.item]
                     
                     if object as? NSView == nil {
@@ -185,7 +177,7 @@ open class Collection: StaticSetupObject {
                           oldData: self.objects,
                           newData: objects,
                           updateObjects: {
-                            reloadVisibleCells()
+                            reloadVisibleCells(exceping: $0)
                             self.objects = objects
                           },
                           completion: completion)

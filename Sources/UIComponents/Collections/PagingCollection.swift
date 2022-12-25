@@ -6,18 +6,11 @@ import AppKit
 
 open class PagingCollection: Collection {
     
-    private(set) var loader: PagingLoader!
-    private var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
-    
-    override func setup() {
-        super.setup()
-        
-        let loaderType = pagingDelegate?.pagingLoader() ?? PagingLoader.self
-        
-        self.loader = loaderType.init(scrollView: scrollView, delegate: pagingDelegate!)
-    }
+    public let loader: PagingLoader
+    public var pagingDelegate: PagingLoaderDelegate? { delegate as? PagingLoaderDelegate }
     
     public init(collection: CollectionView, pagingDelegate: PagingLoaderDelegate & CollectionDelegate) {
+        self.loader = pagingDelegate.pagingLoader().init(scrollView: collection.enclosingScrollView!, delegate: pagingDelegate)
         super.init(collection: collection, delegate: pagingDelegate)
     }
     

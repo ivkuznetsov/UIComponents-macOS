@@ -9,6 +9,12 @@ public class FirstResponderPreserver {
     private weak var textField: NSTextField?
     private var selection: NSRange?
     
+    public static func performWith(_ window: NSWindow?, _ block: ()->()) {
+        let preserver = FirstResponderPreserver(window: window)
+        block()
+        preserver.commit()
+    }
+    
     public init(window: NSWindow?) {
         if let firstResponder = window?.firstResponder as? NSTextView {
             var view: NSView? = firstResponder
