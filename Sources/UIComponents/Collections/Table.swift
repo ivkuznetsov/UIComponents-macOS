@@ -96,7 +96,7 @@ public class Table: BaseList<NSTableView, TableDelegate, CGFloat, ContainerTable
         list.doubleAction = #selector(doubleClickAction(_:))
         list.usesAutomaticRowHeights = true
         
-        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: list.enclosingScrollView!.contentView, queue: nil) { [weak self] _ in
+        NotificationCenter.default.publisher(for: NSView.boundsDidChangeNotification, object: list.enclosingScrollView!.contentView).sink { [weak self] _ in
             if let wSelf = self {
                 wSelf.delegate?.scrollViewDidScroll(table: wSelf)
             }

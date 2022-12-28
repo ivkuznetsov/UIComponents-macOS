@@ -63,23 +63,20 @@ open class LoadingBarView: NSView {
         wantsLayer = true
     }
     
-    public static func present(in view: NSView, animated: Bool) -> Self {
-        let barView = self.init(frame: CGRect(x: 0, y: 0, width: view.bounds.size.width, height: 2))
-        view.addSubview(barView)
-        view.autoresizingMask = [.width, .minYMargin]
+    public func present(in view: NSView, animated: Bool = true) {
+        frame = CGRect(x: 0, y: 0, width: view.bounds.size.width, height: 2)
         
-        view.addSubview(barView)
-        barView.translatesAutoresizingMaskIntoConstraints = false
-        view.leftAnchor.constraint(equalTo: barView.leftAnchor).isActive = true
-        view.topAnchor.constraint(equalTo: barView.topAnchor).isActive = true
-        view.rightAnchor.constraint(equalTo: barView.rightAnchor).isActive = true
-        barView.heightAnchor.constraint(equalToConstant: 2).isActive = true
+        view.addSubview(self)
+        translatesAutoresizingMaskIntoConstraints = false
+        view.leftAnchor.constraint(equalTo: self.leftAnchor).isActive = true
+        view.topAnchor.constraint(equalTo: self.topAnchor).isActive = true
+        view.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
+        heightAnchor.constraint(equalToConstant: 2).isActive = true
         
         if animated {
-            barView.alphaValue = 0
-            barView.animator().alphaValue = 1
+            alphaValue = 0
+            animator().alphaValue = 1
         }
-        return barView
     }
     
     func hide() {

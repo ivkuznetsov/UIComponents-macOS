@@ -10,24 +10,24 @@ open class AlertBarView: NSView {
     @IBOutlet open var container: NSView!
     var dismissTime: TimeInterval = 5
     
-    open class func present(in view: NSView, message: String) -> Self {
-        let barView = loadFromNib()
-        barView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(barView)
-        view.leftAnchor.constraint(equalTo: barView.leftAnchor).isActive = true
-        view.rightAnchor.constraint(equalTo: barView.rightAnchor).isActive = true
-        view.topAnchor.constraint(equalTo: barView.topAnchor).isActive = true
+    open func present(in view: NSView, message: String) {
+        if view.superview == view, textLabel.stringValue == message { return }
         
-        barView.textLabel.stringValue = message
-        barView.alphaValue = 0
-        barView.animator().alphaValue = 1
+        translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(self)
+        view.leftAnchor.constraint(equalTo: self.leftAnchor).isActive = true
+        view.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
+        view.topAnchor.constraint(equalTo: self.topAnchor).isActive = true
+        
+        self.textLabel.stringValue = message
+        self.alphaValue = 0
+        self.animator().alphaValue = 1
         
         DispatchQueue.main.async {
-            DispatchQueue.main.asyncAfter(deadline: .now() + barView.dismissTime) {
-                barView.hide()
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.dismissTime) {
+                self.hide()
             }
         }
-        return barView
     }
     
     open var message: String { textLabel.stringValue }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21507" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21507"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -32,7 +32,7 @@
                     <stackView wantsLayer="YES" distribution="fill" orientation="horizontal" alignment="top" spacing="15" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZAJ-ah-4L1">
                         <rect key="frame" x="15" y="13" width="261" height="20"/>
                         <subviews>
-                            <progressIndicator wantsLayer="YES" horizontalCompressionResistancePriority="751" maxValue="1" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="cct-Ia-uaF">
+                            <progressIndicator wantsLayer="YES" horizontalCompressionResistancePriority="751" maxValue="1" indeterminate="YES" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="cct-Ia-uaF">
                                 <rect key="frame" x="0.0" y="1" width="184" height="20"/>
                             </progressIndicator>
                             <button wantsLayer="YES" verticalHuggingPriority="750" horizontalCompressionResistancePriority="752" translatesAutoresizingMaskIntoConstraints="NO" id="NDF-Ua-q24">

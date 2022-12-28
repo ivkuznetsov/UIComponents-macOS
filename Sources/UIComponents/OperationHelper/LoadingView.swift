@@ -33,6 +33,7 @@ open class LoadingView: NSView {
             view.alphaValue = 0
             view.animator().alphaValue = 1
         }
+        performLazyLoading()
     }
     
     func performLazyLoading() {

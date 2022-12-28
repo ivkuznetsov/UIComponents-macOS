@@ -3,6 +3,7 @@
 //
 
 import AppKit
+import CommonUtils
 
 open class LoadingPanel: NSPanel {
     
@@ -19,14 +20,15 @@ open class LoadingPanel: NSPanel {
     open var progress: CGFloat = 0 {
         didSet {
             indicator?.doubleValue = progress
+            indicator.isIndeterminate = progress == 0
         }
     }
     
     public static func present(in window: NSWindow?, label: String, cancel: (()->())?) -> LoadingPanel {
-        let panel = self.loadFromNib()
+        let panel = self.loadFromNib(bundle: Bundle.module)
+        panel.progress = 0
         panel.label.stringValue = label
         panel.cancel = cancel
-        panel.indicator.doubleValue = 0
         panel.indicator.usesThreadedAnimation = false
         if let window = window {
             window.beginSheet(panel, completionHandler: nil)
