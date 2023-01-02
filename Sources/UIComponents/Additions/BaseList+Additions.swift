@@ -5,12 +5,12 @@
 //  Created by Ilya Kuznetsov on 02/01/2023.
 //
 
-import CommonUtils
 import Foundation
+import CommonUtils
 
 public extension BaseList {
     
-    convenience init(list: List? = nil) {
-        self.init(list: list, emptyStateView: NoObjectsView.loadFromNib(bundle: Bundle.module))
+    convenience init(listView: View? = nil) {
+        self.init(listView: listView, emptyStateView: NoObjectsView.loadFromNib(bundle: Bundle.module))
     }
 }
