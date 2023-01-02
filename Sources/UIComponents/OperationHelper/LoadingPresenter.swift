@@ -37,8 +37,8 @@ public class LoadingPresenter: StaticSetupObject {
         self.view = view
         super.init()
         
-        helper.$processing.sink { [weak self] _ in
-            self?.reloadView()
+        helper.$processing.sink { [weak self] in
+            self?.reloadView($0)
         }.retained(by: self)
         
         helper.didFail.sink { [weak self] fail in
@@ -64,12 +64,12 @@ public class LoadingPresenter: StaticSetupObject {
     private var modalProgress: AnyObject?
     private var nonBlockingProgress: AnyObject?
     
-    private func reloadView() {
+    private func reloadView(_ processing: [WorkBase:(progress: WorkProgress?, presentation: LoadingHelper.Presentation)]) {
         var opaque = false
         var modal = false
         var nonblocking = false
         
-        helper.processing.forEach { work, item in
+        processing.forEach { work, item in
             switch item.presentation {
             case .opaque:
                 opaque = true
