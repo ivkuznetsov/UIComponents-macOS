@@ -3,7 +3,7 @@
 //
 
 import AppKit
-import CommonUtils
+import SharedUIComponents
 
 open class LoadingView: NSView {
     

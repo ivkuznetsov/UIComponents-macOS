@@ -6,11 +6,13 @@
 //
 
 import Foundation
-import CommonUtils
+import SharedUIComponents
 
 public extension BaseList {
     
     convenience init(listView: View? = nil) {
         self.init(listView: listView, emptyStateView: NoObjectsView.loadFromNib(bundle: Bundle.module))
     }
+    
+    var noObjecsView: NoObjectsView? { emptyStateView as? NoObjectsView }
 }

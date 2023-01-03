@@ -3,6 +3,7 @@
 //
 
 import AppKit
+import SharedUIComponents
 import CommonUtils
 
 public class LoadingPresenter: StaticSetupObject {

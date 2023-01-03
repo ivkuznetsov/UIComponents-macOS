@@ -3,7 +3,7 @@
 //
 
 import AppKit
-import CommonUtils
+import SharedUIComponents
 
 open class LoadingPanel: NSPanel {
     
@@ -25,7 +25,7 @@ open class LoadingPanel: NSPanel {
     }
     
     public static func present(in window: NSWindow?, label: String, cancel: (()->())?) -> LoadingPanel {
-        let panel = self.loadFromNib(bundle: Bundle.module)
+        let panel = loadFromNib(bundle: Bundle.module)
         panel.progress = 0
         panel.label.stringValue = label
         panel.cancel = cancel

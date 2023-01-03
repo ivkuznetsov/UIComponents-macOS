@@ -5,6 +5,7 @@
 import Foundation
 import AppKit
 import CommonUtils
+import SharedUIComponents
 
 public protocol InputValidatorDelegate: AnyObject {
     

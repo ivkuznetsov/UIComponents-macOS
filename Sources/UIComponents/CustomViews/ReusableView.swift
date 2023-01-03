@@ -3,6 +3,7 @@
 //
 
 import AppKit
+import SharedUIComponents
 
 open class ReusableView: NSView {
     

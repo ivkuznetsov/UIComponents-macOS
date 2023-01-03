@@ -10,13 +10,13 @@ let package = Package(
         .library(name: "UIComponents", targets: ["UIComponents"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ivkuznetsov/CommonUtils.git", branch: "main")
+        .package(url: "https://github.com/ivkuznetsov/CommonUtils.git", branch: "main"),
+        .package(url: "https://github.com/ivkuznetsov/SharedUIComponents.git", branch: "main")
     ],
     targets: [
         .target(name: "UIComponents",
-                dependencies: ["CommonUtils"],
+                dependencies: ["CommonUtils", "SharedUIComponents"],
                 resources: [.copy("Resources/NoObjectsView.xib"),
-                            .copy("Resources/FooterLoadingView.xib"),
                             .copy("Resources/LoadingView.xib"),
                             .copy("Resources/LoadingPanel.xib"),
                             .copy("Resources/FailedView.xib"),
