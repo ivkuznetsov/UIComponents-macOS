@@ -6,7 +6,8 @@ import AppKit
 import SharedUIComponents
 import CommonUtils
 
-public class LoadingPresenter: StaticSetupObject {
+@MainActor
+public class LoadingPresenter {
     
     public let helper = LoadingHelper()
     public let view: NSView
@@ -36,7 +37,6 @@ public class LoadingPresenter: StaticSetupObject {
     
     public init(view: NSView) {
         self.view = view
-        super.init()
         
         helper.$processing.sink { [weak self] in
             self?.reloadView($0)
@@ -65,12 +65,12 @@ public class LoadingPresenter: StaticSetupObject {
     private var modalProgress: AnyObject?
     private var nonBlockingProgress: AnyObject?
     
-    private func reloadView(_ processing: [WorkBase:(progress: WorkProgress?, presentation: LoadingHelper.Presentation)]) {
+    private func reloadView(_ processing: [String:LoadingHelper.TaskWrapper]) {
         var opaque = false
         var modal = false
         var nonblocking = false
         
-        processing.forEach { work, item in
+        processing.forEach { id, item in
             switch item.presentation {
             case .opaque:
                 opaque = true
@@ -78,7 +78,7 @@ public class LoadingPresenter: StaticSetupObject {
                 
                 if loadingView.superview == nil {
                     loadingView.present(in: view, animated: false)
-                    progress = item.progress?.$absoluteValue.sink { [weak loadingView] in
+                    progress = item.$progress.sink { [weak loadingView] in
                         loadingView?.progress = $0
                     }
                 }
@@ -86,8 +86,8 @@ public class LoadingPresenter: StaticSetupObject {
                 modal = true
                 
                 if modalLoadingPanel == nil, let window = view.window {
-                    modalLoadingPanel = LoadingPanel.present(in: window, label: details, cancel: cancellable ? { work.cancel() } : nil)
-                    modalProgress = item.progress?.$absoluteValue.sink { [weak modalLoadingPanel] in
+                    modalLoadingPanel = LoadingPanel.present(in: window, label: details, cancel: cancellable ? { [weak item] in item?.cancel() } : nil)
+                    modalProgress = item.$progress.sink { [weak modalLoadingPanel] in
                         modalLoadingPanel?.progress = $0
                     }
                 }

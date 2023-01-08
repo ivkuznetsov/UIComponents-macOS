@@ -12,7 +12,7 @@ public protocol InputValidatorDelegate: AnyObject {
     func isValid(input: NSView) -> InputValidator.Result?
 }
 
-public class InputValidator: StaticSetupObject, NSTextFieldDelegate {
+public class InputValidator: NSObject, NSTextFieldDelegate {
     
     public weak var delegate: InputValidatorDelegate?
     public var actionButton: NSButton?
